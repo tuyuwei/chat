@@ -1,14 +1,17 @@
-cc = gcc
-options = -Wall -g -std=c99
-objs = ../objs/chat.o
-target = ../objs/chatServer
-source = chat.c chat.h
+# 借鉴redis Makefile
 
-$(target): $(objs)
-	$(cc) $(objs) -o $(target)
+CC = gcc
+STD = -std=c99 -pedantic -DREDIS_STATIC=''
+WARN = -Wall -W
 
-$(objs): chat.c chat.h
-	$(cc) $(options) -c chat.c -o $(objs)
+CHAT_OBJ = chat.o ae.o ae_epoll.o zmalloc.o setproctitle.o anet.o networking.o
+CHAT_SERVER_NAME = chatServer
+
+$(CHAT_SERVER_NAME): $(CHAT_OBJ)
+	$(CC) $(CHAT_OBJ) -g $(STD) -o $(CHAT_SERVER_NAME)
+
+%.o: %.c
+	$(CC) $(WARN) -g -c $< -o $@
 
 clean:
-	rm -rf $(objs) $(target)
+	rm -rf $(CHAT_OBJ) $(CHAT_SERVER_NAME)

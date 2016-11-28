@@ -1,56 +1,60 @@
-#ifndef CHAT_T
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/epoll.h>
-#include <string.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <signal.h>
+#ifndef __CHAT_H
+#define __CHAT_H
 
-#include <fcntl.h>
-#include <sys/shm.h>
+#include "setproctitle.c"
+#include "ae.h"
+#include "zmalloc.h"
+#include "anet.h"
+#include "networking.h"
 
-#define LISTEN_MAX 10
-#define EVENTS_MAX 1000
-#define BUFF_MAX 1024
+#define EVENT_MAX 1024
+/* Anti-warning macro... */
+#define UNUSED(V) ((void) V)
+
+#define C_OK                    0
+#define C_ERR                   -1
+#define CONFIG_BINDADDR_MAX        16
+#define LOG_MAX_LEN    1024 /* Default maximum length of syslog messages */
+#define NET_IP_STR_LEN 46
+
+/* Log levels */
+#define LL_DEBUG 0
+#define LL_VERBOSE 1
+#define LL_NOTICE 2
+#define LL_WARNING 3
+#define LL_RAW (1<<10) /* Modifier to log without timestamp */
+#define CONFIG_DEFAULT_VERBOSITY LL_NOTICE
+#define PROTO_REPLY_CHUNK_BYTES 2048
+
+typedef struct {
+    aeEventLoop *el;
+    /* Configuration */
+    int verbosity;                  /* Loglevel in redis.conf */
+    /* Logging */
+    char *logfile;                  /* Path of log file */
+    /* Networking */
+    int port;                   /* TCP listening port */
+    int tcp_backlog;            /* TCP listen() backlog */
+    char neterr[ANET_ERR_LEN];    /* Error buffer for anet.c */
+    char *bindaddr[CONFIG_BINDADDR_MAX]; /* Addresses we should bind to */
+    int ipfd[CONFIG_BINDADDR_MAX]; /* TCP socket file descriptors */
+} chatServer;
+
+typedef struct client {
+    //uint64_t id;            /* Client incremental unique ID. */
+    int fd;                 /* Client socket. */
+    struct chatCommand *cmd, *lastcmd;  /* Last command executed. */
+    /* Response buffer */
+    int bufpos;
+    int bufsize;
+    char buf[PROTO_REPLY_CHUNK_BYTES];
+} client;
 
 
-typedef struct chatMsg {
-	char data[BUFF_MAX];
-	int len, offset;
-}chatMsg;
+void initServer(void);
 
-typedef struct chatClient {
-	int fd;
-	chatMsg *msg;
-	int statusCode;
-	void (*callBackFunction)(int cfd, void *data);
-} chatClient;
+int listenToPort(int, int *, int);
 
-void signalHandler(int signo);
-int initSocket(int epollFd, int port);
-void connectClient(int fd, void *data);
-void sendClient(int cfd, void *data);
-void recvClient(int cfd, void *data);
-/*void eventAdd(int eventFd, int event, chatClient *client);
-void eventDelete(int eventFd, int event, chatClient *client);
-void eventSet(int eventFd, int event, chatClient *client);*/
-
-inline void signalHandler(int signo)
-{
-	switch (signo) {
-		case SIGINT:
-			printf("receive a signal\n");
-			exit(0);
-			break;
-
-	}
-}
-
-
+extern chatServer server;
 
 #endif

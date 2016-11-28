@@ -1,7 +1,7 @@
 cc = gcc
-options = -Wall -g -std=c99
-objs = ../objs/client.o
-target = ../objs/client
+options = -Wall -W -g -std=c99
+objs = client.o
+target = client
 source = client.c
 
 $(target): $(objs)
